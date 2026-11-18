@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Claude Manager</title><!--CM_TOKEN-->
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/xterm.css">
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<script src="i18n.js"></script>
+</head>
+<body>
+<header class="top">
+  <h1>Claude Manager</h1>
+  <nav class="tabs" role="tablist" data-i18n-aria-label="header.tabs_label">
+    <button type="button" class="tab" role="tab" id="tabbtn-sessions" data-tab="sessions" aria-controls="tab-sessions" data-i18n-title="header.tab_sessions"><span class="ic" aria-hidden="true">☰</span><span class="tx" data-i18n="header.tab_sessions">Sessions</span></button>
+    <button type="button" class="tab" role="tab" id="tabbtn-usage" data-tab="usage" aria-controls="tab-usage" data-i18n-title="header.tab_usage"><span class="ic" aria-hidden="true">▤</span><span class="tx" data-i18n="header.tab_usage">Usage</span></button>
+    <button type="button" class="tab" role="tab" id="tabbtn-workspace" data-tab="workspace" aria-controls="tab-workspace" data-i18n-title="header.tab_workspace"><span class="ic" aria-hidden="true">▣</span><span class="tx" data-i18n="header.tab_workspace">Workspace</span><span class="tab-count" id="wsBadge" hidden></span></button>
+    <button type="button" class="tab" role="tab" id="tabbtn-inventory" data-tab="inventory" aria-controls="tab-inventory" data-i18n-title="header.tab_inventory_tip"><span class="ic" aria-hidden="true">▦</span><span class="tx" data-i18n="header.tab_inventory">Kho</span></button>
+  </nav>
+  <span class="sp"></span>
+  <button type="button" id="searchBtn" data-i18n-title="header.search_tip" data-i18n-aria-label="header.search" hidden><span class="ic" aria-hidden="true">⌕</span><span class="tx" data-i18n="header.search">Tìm nội dung</span></button>
+  <span class="status" id="scanStatus" role="status" aria-live="polite"></span>
+  <button type="button" class="ghost" id="themeBtn" data-i18n-title="header.theme_tip"></button>
+  <button type="button" id="refresh" data-i18n-title="header.refresh" data-i18n-aria-label="header.refresh"><span class="ic" aria-hidden="true">⟳</span><span class="tx" data-i18n="header.refresh">Quét lại</span></button>
+  <button type="button" id="settingsBtn" data-i18n-title="header.settings" data-i18n-aria-label="header.settings"><span class="ic" aria-hidden="true">⚙</span><span class="tx" data-i18n="header.settings">Cài đặt</span></button>
+  <button type="button" id="helpBtn" data-i18n-title="header.help_tip" data-i18n-aria-label="header.help">?</button>
+</header>
+<div class="banner" id="authBanner" role="alert" hidden>
+  <span id="authBannerText"></span>
+  <button type="button" id="authReload" data-i18n="header.auth_reload">Tải lại trang</button>
+</div>
+
+<main id="data-view">
+  <div class="fbar" id="filters">
+    <div class="f-row">
+      <input type="search" id="q" data-i18n-aria-label="sessions.filter_search_label" data-i18n-placeholder="sessions.filter_search_ph">
+      <button type="button" class="tog" id="tStar" aria-pressed="false" data-i18n-title="sessions.filter_star_tip" data-i18n="sessions.filter_star" hidden>★ Đã star</button>
+      <button type="button" class="tog" id="tGroup" aria-pressed="false" data-i18n-title="sessions.filter_group_tip" data-i18n="sessions.filter_group">Nhóm theo project</button>
+      <button type="button" class="tog" id="tHide" aria-pressed="false" data-i18n-title="sessions.filter_hide_empty_tip" data-i18n="sessions.filter_hide_empty">Ẩn session rỗng</button>
+    </div>
+    <div class="f-sel">
+      <select id="fSource" data-i18n-aria-label="sessions.filter_source_label"></select>
+      <select id="fStatus" data-i18n-aria-label="sessions.filter_status_label"></select>
+      <select id="fProject" data-i18n-aria-label="sessions.filter_project_label"></select>
+      <select id="fModel" data-i18n-aria-label="sessions.filter_model_label"></select>
+      <select id="fTag" data-i18n-aria-label="sessions.filter_tag_label" hidden></select>
+    </div>
+  </div>
+  <div class="cards" id="cards"></div>
+
+  <section id="tab-sessions" role="tabpanel" aria-labelledby="tabbtn-sessions">
+    <div class="exp" id="expBanner" role="status" hidden></div>
+    <div class="bulk" id="bulk" hidden></div>
+    <div class="tablewrap">
+      <table id="tbl"><thead></thead><tbody></tbody></table>
+      <div class="empty" id="empty" data-i18n="sessions.empty" hidden>Không có session nào khớp bộ lọc.</div>
+    </div>
+  </section>
+
+  <section id="tab-usage" role="tabpanel" aria-labelledby="tabbtn-usage" hidden>
+    <div class="bar usage-bar" id="uBar">
+      <label class="ctl"><span data-i18n="usage.range_label">Khoảng</span>
+        <select id="uRange">
+          <option value="7" data-i18n="usage.range_7">7 ngày</option><option value="14" data-i18n="usage.range_14">14 ngày</option><option value="30" data-i18n="usage.range_30">30 ngày</option>
+          <option value="90" data-i18n="usage.range_90">90 ngày</option><option value="0" data-i18n="usage.range_all">Tất cả</option><option value="custom" data-i18n="usage.range_custom">Tuỳ chọn…</option>
+        </select>
+      </label>
+      <span class="ctl-range" id="uCustom" hidden>
+        <label class="ctl"><span data-i18n="usage.range_from">Từ</span> <input type="date" id="uFrom"></label>
+        <label class="ctl"><span data-i18n="usage.range_to">Đến</span> <input type="date" id="uTo"></label>
+      </span>
+      <div class="seg" id="uMode" role="group" data-i18n-aria-label="usage.mode_label">
+        <button type="button" data-m="billing" aria-pressed="true" data-i18n-title="usage.mode_billing_tip" data-i18n="usage.mode_billing">Billing</button>
+        <button type="button" data-m="conversation" aria-pressed="false" data-i18n-title="usage.mode_conversation_tip" data-i18n="usage.mode_conversation">Conversation</button>
+      </div>
+      <span class="sp"></span>
+      <span class="muted small" id="uMeta" role="status" aria-live="polite"></span>
+      <button type="button" id="uPricingBtn" data-i18n-title="usage.pricing_btn_tip" data-i18n="usage.pricing_btn">Bảng giá…</button>
+    </div>
+    <div id="uNotices"></div>
+    <div class="cards" id="uCards" data-i18n-aria-label="usage.cards_label"></div>
+
+    <section class="panel" id="pBlocks" aria-labelledby="hBlocks">
+      <div class="panel-hd"><h3 id="hBlocks" data-i18n="usage.blocks_title">Block 5 giờ</h3><span class="muted small" data-i18n="usage.blocks_subtitle">30 ngày gần nhất</span></div>
+      <div id="uBlocks"></div>
+    </section>
+
+    <section class="panel" id="pChart" aria-labelledby="hChart">
+      <div class="panel-hd">
+        <h3 id="hChart" data-i18n="usage.chart_title">Theo ngày</h3>
+        <label class="ctl small-ctl"><span data-i18n="usage.metric_label">Chỉ số</span>
+          <select id="uMetric">
+            <option value="cost" data-i18n="usage.metric_cost">Chi phí (USD, ước tính)</option><option value="in" data-i18n="usage.metric_in">Input tokens</option><option value="out" data-i18n="usage.metric_out">Output tokens</option>
+            <option value="io" data-i18n="usage.metric_io">Input + Output (không cache)</option><option value="all" data-i18n="usage.metric_all">Tổng gồm cache</option>
+          </select>
+        </label>
+      </div>
+      <div id="uChart"></div><div class="legend" id="uLegend"></div>
+    </section>
+
+    <div class="grid2" id="gCharts">
+      <section class="panel" id="pActive" aria-labelledby="hActive">
+        <div class="panel-hd"><h3 id="hActive" data-i18n="usage.active_title">Thời gian hoạt động</h3><span class="muted small" data-i18n="usage.active_subtitle">giờ/ngày (khoảng nghỉ ≤ 2 giờ)</span></div>
+        <div id="uActive"></div>
+      </section>
+      <section class="panel" id="pHeat" aria-labelledby="hHeat">
+        <div class="panel-hd"><h3 id="hHeat" data-i18n="usage.heat_title">Giờ trong ngày × thứ</h3><span class="muted small" id="uHeatTz" data-i18n="usage.heat_subtitle">input + output</span></div>
+        <div id="uHeat"></div>
+      </section>
+    </div>
+
+    <div class="grid3" id="gTop">
+      <section class="panel" aria-labelledby="hTools"><div class="panel-hd"><h3 id="hTools" data-i18n="usage.top_tools">Tool dùng nhiều</h3></div><div id="uTools"></div></section>
+      <section class="panel" aria-labelledby="hSkills"><div class="panel-hd"><h3 id="hSkills" data-i18n="usage.top_skills">Skill</h3></div><div id="uSkills"></div></section>
+      <section class="panel" aria-labelledby="hSubs"><div class="panel-hd"><h3 id="hSubs" data-i18n="usage.top_subagents">Subagent</h3></div><div id="uSubs"></div></section>
+    </div>
+
+    <div class="grid2 grid-t" id="gTables">
+      <section class="full" aria-labelledby="hByProject"><h3 class="sec" id="hByProject" data-i18n="usage.tbl_by_project">Theo project</h3><div class="tablewrap scroll"><table id="byProject"></table></div></section>
+      <section class="full" aria-labelledby="hByDay"><h3 class="sec" id="hByDay" data-i18n="usage.tbl_by_day">Theo ngày (bảng)</h3><div class="tablewrap scroll"><table id="byDay"></table></div></section>
+      <section aria-labelledby="hByModel"><h3 class="sec" id="hByModel" data-i18n="usage.tbl_by_model">Theo model</h3><div class="tablewrap scroll"><table id="byModel"></table></div></section>
+      <section aria-labelledby="hBySource"><h3 class="sec" id="hBySource" data-i18n="usage.tbl_by_source">Theo nguồn</h3><div class="tablewrap scroll"><table id="bySource"></table></div></section>
+    </div>
+  </section>
+</main>
+
+<section id="tab-inventory" role="tabpanel" aria-labelledby="tabbtn-inventory" hidden></section>
+<section id="tab-workspace" role="tabpanel" aria-labelledby="tabbtn-workspace" hidden>
+  <div class="ws-bar">
+    <div class="seg" id="wsLayouts" role="group" data-i18n-aria-label="workspace.layout_group"></div>
+    <button type="button" class="primary" id="wsNew" data-i18n-title="workspace.new_pane_tip" data-i18n="workspace.new_pane">+ Pane mới</button>
+    <span class="ws-sum" id="wsSum" role="status" aria-live="polite"></span>
+    <span class="sp"></span>
+  </div>
+  <div class="ws-strip" id="wsStrip" hidden></div>
+  <div class="ws-grid" id="wsGrid"></div>
+</section>
+
+<aside id="drawer" role="dialog" aria-modal="false" aria-labelledby="dTitle" aria-hidden="true">
+  <div class="hd">
+    <div class="hd-row"><button type="button" class="ibtn star" id="dStar" data-i18n-title="drawer.star_tip" aria-pressed="false" hidden>☆</button><h2 id="dTitle"></h2><button type="button" class="ibtn" id="dRename" data-i18n-title="drawer.rename" data-i18n-aria-label="drawer.rename" hidden>✎</button><button type="button" id="dClose" data-i18n-title="drawer.close" data-i18n-aria-label="drawer.close"><span class="ic" aria-hidden="true">✕</span><span class="tx" data-i18n="drawer.close">Đóng</span></button></div>
+    <div class="hd-badges" id="dBadges"></div>
+    <div class="hd-note" id="dNote" hidden></div>
+    <details class="hd-more"><summary data-i18n="drawer.more">Chi tiết &amp; thao tác</summary>
+      <dl class="meta" id="dMeta"></dl>
+      <div class="bar" id="dActions"></div>
+    </details>
+    <div class="bar small" id="legacyBar" hidden>
+      <label><input type="checkbox" id="showMeta"> <span data-i18n="drawer.show_meta">hiện system/meta</span></label>
+      <label><input type="checkbox" id="showTools" checked> <span data-i18n="drawer.show_tools">hiện tool call</span></label>
+    </div>
+    <div id="vbar" class="vbar" hidden>
+      <div id="vCrumb" class="v-crumb" hidden></div>
+      <div class="bar small">
+        <label><input type="checkbox" id="vPrompts"> <span data-i18n="drawer.only_prompts">chỉ prompt</span></label>
+        <button type="button" id="vFind" data-i18n-title="drawer.find_tip" data-i18n="drawer.find">Tìm…</button>
+        <button type="button" id="vToggleTools" data-i18n="drawer.expand_tools">Mở tool</button>
+        <span class="muted" id="vInfo"></span>
+        <span class="sp"></span>
+        <span class="muted" id="vExport"></span>
+      </div>
+      <div class="findbar" id="findBar" hidden>
+        <input type="search" id="findQ" data-i18n-aria-label="drawer.find_label" data-i18n-placeholder="drawer.find_ph">
+        <span class="muted small" id="findCount" role="status"></span>
+        <button type="button" id="findPrev" data-i18n-aria-label="drawer.find_prev">↑</button>
+        <button type="button" id="findNext" data-i18n-aria-label="drawer.find_next">↓</button>
+        <button type="button" id="findClose" data-i18n-aria-label="drawer.find_close">✕</button>
+      </div>
+      <div class="muted small v-hint" data-i18n="drawer.nav_hint">Alt+↑/↓: nhảy giữa các prompt</div>
+    </div>
+  </div>
+  <div id="msgs" class="hide-meta"></div>
+</aside>
+
+<dialog id="searchDlg" class="srch" data-i18n-aria-label="search.dialog_label">
+  <div class="srch-in">
+    <input type="search" id="sQ" role="combobox" aria-expanded="true" aria-controls="sList" aria-autocomplete="list" autocomplete="off" spellcheck="false" data-i18n-placeholder="search.input_ph">
+    <button type="button" id="sClose" class="ghost" data-i18n-aria-label="search.close" data-i18n="search.close_label">Esc</button>
+  </div>
+  <div class="srch-f" id="sFilters">
+    <select id="sSource" data-i18n-aria-label="search.filter_source"></select>
+    <select id="sRole" data-i18n-aria-label="search.filter_role"><option value="" data-i18n="search.role_all">Cả hai vai</option><option value="user" data-i18n="search.role_user">Bạn</option><option value="assistant" data-i18n="search.role_assistant">Claude</option></select>
+    <input type="date" id="sFrom" data-i18n-aria-label="search.filter_from"><input type="date" id="sTo" data-i18n-aria-label="search.filter_to">
+    <span class="muted small" id="sStat" role="status" aria-live="polite"></span>
+  </div>
+  <ul id="sList" role="listbox" data-i18n-aria-label="search.results_label"></ul>
+</dialog>
+
+<dialog id="newPaneDlg" aria-labelledby="npTitle">
+  <form id="npForm" autocomplete="off" novalidate>
+    <h2 id="npTitle" data-i18n="workspace.dlg_title">Pane mới</h2>
+    <div class="field">
+      <label for="npSource" data-i18n="workspace.dlg_source">Nguồn</label>
+      <select id="npSource"></select>
+    </div>
+    <div class="field">
+      <label for="npCwd" data-i18n="workspace.dlg_cwd">Thư mục</label>
+      <div class="combo">
+        <input type="text" id="npCwd" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="npList" spellcheck="false" autocapitalize="off" data-i18n-placeholder="workspace.dlg_cwd_ph">
+        <ul id="npList" role="listbox" data-i18n-aria-label="workspace.dlg_cwd_list_label" hidden></ul>
+      </div>
+      <span class="hint" id="npCwdHint" data-i18n="workspace.dlg_cwd_hint">Thư mục phải tồn tại trong nguồn đã chọn (đường dẫn Windows hoặc Linux tuỳ nguồn).</span>
+    </div>
+    <div class="field">
+      <label for="npResume" data-i18n="workspace.dlg_resume">Tiếp tục session (tuỳ chọn)</label>
+      <select id="npResume"></select>
+      <span class="hint" id="npResumeHint"></span>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="npModel" data-i18n="workspace.dlg_model">Model</label><select id="npModel"></select></div>
+      <div class="field"><label for="npEffort" data-i18n="workspace.dlg_effort">Effort</label><select id="npEffort"></select></div>
+    </div>
+    <p class="form-err" id="npErr" role="alert" hidden></p>
+    <div class="dlg-actions">
+      <button type="button" id="npCancel" data-i18n="workspace.dlg_cancel">Huỷ</button>
+      <button type="submit" class="primary" id="npOk" data-i18n="workspace.dlg_ok">Mở pane</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="pricingDlg" class="lg" aria-labelledby="prTitle">
+  <form id="prForm" autocomplete="off" novalidate>
+    <h2 id="prTitle" data-i18n="pricing.title">Bảng giá model</h2>
+    <div class="dlg-body" id="prBody"></div>
+    <p class="form-err" id="prErr" role="alert" hidden></p>
+    <div class="dlg-actions">
+      <button type="button" id="prCancel" data-i18n="pricing.close">Đóng</button>
+      <button type="submit" class="primary" id="prSave" data-i18n="pricing.save">Lưu giá riêng</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="settingsDlg" class="lg" aria-labelledby="stTitle">
+  <form id="stForm" autocomplete="off" novalidate>
+    <h2 id="stTitle" data-i18n="settings.title">Cài đặt</h2>
+    <div class="dlg-body" id="stBody"></div>
+    <p class="form-err" id="stErr" role="alert" hidden></p>
+    <div class="dlg-actions">
+      <button type="button" id="stCancel" data-i18n="settings.close">Đóng</button>
+      <button type="submit" class="primary" id="stSave" data-i18n="settings.save">Lưu cài đặt</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="helpDlg" class="lg" aria-labelledby="hpTitle">
+  <div class="help-wrap">
+    <div class="help-hd"><h2 id="hpTitle" data-i18n="header.help">Trợ giúp</h2><button type="button" id="hpClose" data-i18n-aria-label="common.close">✕</button></div>
+    <div class="dlg-body help-body" id="hpBody"></div>
+  </div>
+</dialog>
+
+<div id="tip" role="presentation" aria-hidden="true"></div>
+
+<dialog id="confirmDlg" class="sm" aria-labelledby="cfMsg">
+  <form method="dialog">
+    <p id="cfMsg" class="cf-msg"></p>
+    <div class="dlg-actions">
+      <button type="submit" value="cancel" id="cfCancel" data-i18n="common.cancel">Huỷ</button>
+      <button type="submit" value="ok" class="primary" id="cfOk" data-i18n="common.ok">OK</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>window.__cmHash = location.hash;</script>
+<script>
+/* Load the locale first (no flash of the wrong language), then the app scripts in order. */
+(function () {
+  var files = ['vendor/xterm.js', 'vendor/addon-fit.js', 'app.js', 'settings.js', 'usage.js', 'workspace.js', 'viewer.js', 'search.js', 'inventory.js'];
+  function go() {
+    files.forEach(function (f) { var s = document.createElement('script'); s.src = f; s.async = false; document.body.appendChild(s); });
+  }
+  (window.I18N ? I18N.init() : Promise.resolve()).then(go, go);
+})();
+</script>
+</body>
+</html>

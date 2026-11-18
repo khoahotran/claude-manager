@@ -1,0 +1,25 @@
+* text=auto
+
+*.rs    text eol=lf
+*.toml  text eol=lf
+*.lock  text eol=lf
+*.js    text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.svg   text eol=lf
+
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+
+*.exe   binary
+*.png   binary
+*.ico   binary
+*.db    binary
+*.bin   binary
+
+# GitHub linguist
+web/vendor/** linguist-vendored
+src/pricing_snapshot.json linguist-generated
+docs/** linguist-documentation

@@ -1,0 +1,38 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: claude-manager version (Cargo.toml or release tag)
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Where does it run?
+      options: [Windows only, Windows with WSL, Other]
+    validations:
+      required: true
+  - type: input
+    id: claude
+    attributes:
+      label: Claude Code version (claude --version)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove real session titles, paths and the access token first.

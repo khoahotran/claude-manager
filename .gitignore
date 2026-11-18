@@ -1,0 +1,58 @@
+# Build output
+/target/
+**/target/
+*.pdb
+
+# Built exe + runtime state (local paths, caches, session data). Never commit.
+/bin/
+*.exe
+config.json.tmp
+cache.bin
+history.bin
+search.db
+search.db-*
+*.db-shm
+*.db-wal
+/meta.json
+/ui.json
+/workspace.json
+instance.json
+*.instance
+*.lock.tmp
+
+# Test scratch
+/tests/uat/tmp/
+/tests/uat/*.tmp
+/tests/uat/cm-uat-*/
+/tests/uat/screenshots/
+
+# Node (UAT needs none, but just in case)
+node_modules/
+npm-debug.log*
+
+# Logs
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.code-workspace
+*.swp
+*.swo
+*~
+.history/
+
+# Local agent / tool state
+.claude/settings.local.json
+.env
+.env.*
+
+# Local-only notes (personal / real-usage data). Never commit.
+/private/
