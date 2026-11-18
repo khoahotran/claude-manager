@@ -31,7 +31,7 @@ rusqlite = { version = "0.43", features = ["bundled"] }
 notify = { version = "8", default-features = false }
 
 [dev-dependencies]
-tokio-tungstenite = "0.29"
+tokio-tungstenite = "0.30"
 futures-util = "0.3"
 
 [profile.release]
