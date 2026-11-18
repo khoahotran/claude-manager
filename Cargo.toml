@@ -26,7 +26,7 @@ anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 open = "5"
-similar = "2"
+similar = "3"
 rusqlite = { version = "0.43", features = ["bundled"] }
 notify = { version = "8", default-features = false }
 
