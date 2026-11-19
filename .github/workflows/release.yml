@@ -24,8 +24,16 @@ jobs:
           $name = "claude-manager-${{ github.ref_name }}-windows-x64.exe"
           Copy-Item target/release/claude-manager.exe $name
           (Get-FileHash $name -Algorithm SHA256).Hash | Out-File sha256.txt
+      # Upload as a draft and publish only after every asset is attached, so a cancelled or timed-out run
+      # can never leave a public release with a partial set of files.
       - uses: softprops/action-gh-release@v2
         with:
+          draft: true
           files: |
             claude-manager-${{ github.ref_name }}-windows-x64.exe
             sha256.txt
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${{ github.ref_name }}" --draft=false

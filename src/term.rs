@@ -1251,8 +1251,9 @@ mod tests {
         push_ring(&mut ring, b"0123456789ABCDEFGHIJ");
         assert_eq!(ring.len(), SCROLLBACK_BYTES);
         assert!(ring.iter().copied().collect::<Vec<u8>>().ends_with(b"0123456789ABCDEFGHIJ"));
-        push_ring(&mut ring, &vec![b'z'; SCROLLBACK_BYTES + 5]);
-        assert_eq!(ring.len(), SCROLLBACK_BYTES);
-        assert!(ring.iter().all(|&c| c == b'z'));
+        // distinct bytes, so keeping the head of an oversized chunk instead of its tail would be caught
+        let big: Vec<u8> = (0..SCROLLBACK_BYTES + 5).map(|i| (i % 251) as u8).collect();
+        push_ring(&mut ring, &big);
+        assert_eq!(ring.iter().copied().collect::<Vec<u8>>(), big[5..]);
     }
 }
