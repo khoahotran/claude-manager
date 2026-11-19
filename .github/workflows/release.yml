@@ -26,7 +26,7 @@ jobs:
           (Get-FileHash $name -Algorithm SHA256).Hash | Out-File sha256.txt
       # Upload as a draft and publish only after every asset is attached, so a cancelled or timed-out run
       # can never leave a public release with a partial set of files.
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           draft: true
           files: |
