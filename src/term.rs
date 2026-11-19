@@ -181,15 +181,7 @@ impl Term {
 
     fn push_output(&self, chunk: &[u8]) {
         let mut out = lock(&self.out);
-        let ring = &mut out.ring;
-        if chunk.len() >= SCROLLBACK_BYTES {
-            ring.clear();
-            ring.extend(&chunk[chunk.len() - SCROLLBACK_BYTES..]);
-        } else {
-            let over = (ring.len() + chunk.len()).saturating_sub(SCROLLBACK_BYTES);
-            ring.drain(..over);
-            ring.extend(chunk);
-        }
+        push_ring(&mut out.ring, chunk);
         // sent under the lock so attach() never sees a gap or a duplicate
         let _ = self.tx.send(Event::Data(Bytes::copy_from_slice(chunk)));
     }
@@ -211,6 +203,18 @@ impl Term {
             }
         }
         self.close_pty();
+    }
+}
+
+/// Appends `chunk`, dropping the oldest bytes so the ring never exceeds SCROLLBACK_BYTES.
+fn push_ring(ring: &mut VecDeque<u8>, chunk: &[u8]) {
+    if chunk.len() >= SCROLLBACK_BYTES {
+        ring.clear();
+        ring.extend(&chunk[chunk.len() - SCROLLBACK_BYTES..]);
+    } else {
+        let over = (ring.len() + chunk.len()).saturating_sub(SCROLLBACK_BYTES);
+        ring.drain(..over);
+        ring.extend(chunk);
     }
 }
 
@@ -1238,40 +1242,17 @@ mod tests {
         assert!(m.list().is_empty());
     }
 
+    // Pure ring test: spawning a real shell here deadlocked on Windows CI (an unread ConPTY never lets
+    // cmd.exe exit, so waiting on it or closing the pseudoconsole blocks forever).
     #[test]
     fn scrollback_ring_is_bounded() {
-        let (tx, _) = broadcast::channel(4);
-        let (in_tx, _in_rx) = mpsc::channel(1);
-        // a Term without a real process is enough to exercise push_output; use a dummy child via the PTY system
-        let pair = native_pty_system().openpty(PtySize::default()).unwrap();
-        let mut cmd = CommandBuilder::new(if cfg!(windows) { "cmd.exe" } else { "/bin/true" });
-        cmd.cwd(std::env::temp_dir());
-        let child = pair.slave.spawn_command(cmd).unwrap();
-        let t = Term {
-            id: "x".into(),
-            source: "s".into(),
-            cwd: "/".into(),
-            title: "t".into(),
-            created_ms: 0,
-            pid: None,
-            alive: AtomicBool::new(false),
-            reader_done: AtomicBool::new(true),
-            out: Mutex::new(Output { ring: VecDeque::new(), finished: None }),
-            tx,
-            input: Mutex::new(Some(in_tx)),
-            master: Mutex::new(None),
-            child: Mutex::new(child),
-        };
-        let t = Arc::new(t);
-        t.push_output(&vec![b'a'; SCROLLBACK_BYTES - 10]);
-        t.push_output(b"0123456789ABCDEFGHIJ");
-        let a = t.attach();
-        assert_eq!(a.replay.len(), SCROLLBACK_BYTES);
-        assert!(a.replay.ends_with(b"0123456789ABCDEFGHIJ"));
-        t.push_output(&vec![b'z'; SCROLLBACK_BYTES + 5]);
-        let a = t.attach();
-        assert_eq!(a.replay.len(), SCROLLBACK_BYTES);
-        assert!(a.replay.iter().all(|&c| c == b'z'));
-        let _ = lock(&t.child).wait();
+        let mut ring = VecDeque::new();
+        push_ring(&mut ring, &vec![b'a'; SCROLLBACK_BYTES - 10]);
+        push_ring(&mut ring, b"0123456789ABCDEFGHIJ");
+        assert_eq!(ring.len(), SCROLLBACK_BYTES);
+        assert!(ring.iter().copied().collect::<Vec<u8>>().ends_with(b"0123456789ABCDEFGHIJ"));
+        push_ring(&mut ring, &vec![b'z'; SCROLLBACK_BYTES + 5]);
+        assert_eq!(ring.len(), SCROLLBACK_BYTES);
+        assert!(ring.iter().all(|&c| c == b'z'));
     }
 }
